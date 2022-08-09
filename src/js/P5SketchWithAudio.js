@@ -4,9 +4,12 @@ import "p5/lib/addons/p5.sound";
 import * as p5 from "p5";
 import { Midi } from '@tonejs/midi'
 import PlayIcon from './functions/PlayIcon.js';
+import SaveJSONToFile from "./functions/SaveJSONToFile.js";
+
 
 import audio from "../audio/memories-no-2.ogg";
 import midi from "../audio/memories-no-2.mid";
+import image from "../images/Tiny-Frogs-Taiwan-Zoo.jpg";
 
 const P5SketchWithAudio = () => {
     const sketchRef = useRef();
@@ -26,10 +29,14 @@ const P5SketchWithAudio = () => {
         p.PPQ = 3840 * 4;
 
         p.files = [
-            'Raohe-Street-Night-Market-2018.json',
-            'Cuba-St-Festival-2018.json',
-            'Tian-Tan-Buddha-2019.json',
-            'Lego-Land-Johor-Bahru-2015.json',
+            'Tobu-Zoo-Winter-Illumination-Trebble-Clef.json',
+            'Tiny-Frogs-Taiwan-Zoo.json',
+            'Elephant-Playing-With-Tyres-Taiwan-Zoo.json',
+            'Making-Mochi-Okegawa-Festival.json',
+            'Spaceman-Building.json',
+            'LABCAT-Meets-Alpaca.json',
+            'Gover-St-Gallery-Mural.json',
+            'Garage-Simaya.json'
         ];
 
         p.imageData = {};
@@ -43,7 +50,6 @@ const P5SketchWithAudio = () => {
         p.loadShapeData = () => {
             // const startPos = multiplier <= 2 ? multiplier : multiplier + 2;
             let array = [];
-            // const cicleSizes = [8,12,16];
             const cicleSizes = [4, 8, 12];
             let x = 2, y = 2;
             while (x < p.width) {
@@ -59,7 +65,7 @@ const P5SketchWithAudio = () => {
                                 y: y,
                                 size: size,
                                 shapeType: p.random(p.shapeTypes),
-                                colour: shape.colour,
+                                colour: shape.c,
                             }
                         );
                     }
@@ -87,6 +93,7 @@ const P5SketchWithAudio = () => {
         }
 
         p.preload = () => {
+            p.img = p.loadImage(image);
             p.imageData = require('../json/' + p.random(p.files));
             p.song = p.loadSound(audio, p.loadMidi);
             p.song.onended(p.logCredits);
@@ -108,6 +115,7 @@ const P5SketchWithAudio = () => {
         } 
 
         p.setup = () => {
+            //p.saveImageData('Lego-Land-Johor-Bahru-2015')
             p.canvas = p.createCanvas(p.canvasWidth, p.canvasHeight);
             p.background(0);
             p.rectMode(p.CENTER);
@@ -126,6 +134,9 @@ const P5SketchWithAudio = () => {
         p.currentNoteIndex = 1;
 
         p.executeCueSet1 = (note) => {
+            const { currentCue } = note;
+            console.log('currentCue', currentCue);
+            console.log(p.currentNoteIndex);
             if(p.currentNoteIndex === 12) {
                 p.clear();
                 p.background(0);
@@ -133,15 +144,20 @@ const P5SketchWithAudio = () => {
                 p.loadShapeData();
                 p.currentNoteIndex = 1;
             }
-            const numItemsToDraw = Math.ceil(p.shapeData.length / 11); 
-            const startIndex = numItemsToDraw * p.currentNoteIndex - numItemsToDraw; 
-            const endIndex = p.shapeData.length < numItemsToDraw * p.currentNoteIndex ? p.shapeData.length : numItemsToDraw * p.currentNoteIndex;
+            const numItemsToDraw = Math.ceil(p.shapeData.length / 11),
+                startIndex = numItemsToDraw * p.currentNoteIndex - numItemsToDraw,
+                endIndex = p.shapeData.length < numItemsToDraw * p.currentNoteIndex ? p.shapeData.length : numItemsToDraw * p.currentNoteIndex;
             for (let i = startIndex; i < endIndex; i++) {
                 const shape = p.shapeData[i],
-                    {x, y, size, shapeType, colour } = shape;
+                            {x, y, size, shapeType, colour } = shape;
 
-                p.stroke(colour[0], colour[1], colour[2]);
-                p[shapeType](x, y, size, size);
+                        p.stroke(colour[0], colour[1], colour[2]);
+                        p[shapeType](x, y, size, size);
+            }
+
+            // hack - not sure why the 6th cue is triggered twice
+            if(currentCue === 6 && currentCue !== p.currentNoteIndex) {
+                p.currentNoteIndex--;
             }
 
             p.currentNoteIndex++;
@@ -313,6 +329,25 @@ const P5SketchWithAudio = () => {
         else {
             //The browser does not support Javascript event binding
         }
+
+        p.saveImageData = (filename) => {
+            p.image(p.img, 0, 0);
+            for (let x = 2; x < 1920; x = x + 4) {
+                for (let y = 2; y < 1080; y = y + 4) {
+                    const key = x + ',' + y;
+                    const c = p.img.get(
+                        x,
+                        y
+                    );
+                    console.log(key);
+                    p.imageData[key] = {
+                        r: 2,
+                        c: c
+                    }
+                }
+            }
+            SaveJSONToFile(p.imageData, filename);
+        };
     };
 
     useEffect(() => {
