@@ -5,6 +5,7 @@ import * as p5 from "p5";
 import { Midi } from '@tonejs/midi'
 import PlayIcon from './functions/PlayIcon.js';
 import SaveJSONToFile from "./functions/SaveJSONToFile.js";
+import AnimatedShape from './classes/AnimatedShape.js';
 
 
 import audio from "../audio/memories-no-2.ogg";
@@ -36,8 +37,16 @@ const P5SketchWithAudio = () => {
             'Spaceman-Building.json',
             'LABCAT-Meets-Alpaca.json',
             'Gover-St-Gallery-Mural.json',
-            'Garage-Simaya.json'
+            'Garage-Simaya.json',
+            'Hong-Kong-Aviary.json',
+            'Kung-Fu-Statues.json',
+            'Mini-Sushi-Restaurant-1.json',
+            'Peanuts-In-Hong-Kong.json',
+            'Tanuki-Hong-Kong-2019.json',
+            'Ten-Thousand-Buddhas-Monastery-Buddha-On-A-Lion.json',
         ];
+
+        p.currentFileIndex = 0;
 
         p.imageData = {};
 
@@ -93,8 +102,10 @@ const P5SketchWithAudio = () => {
         }
 
         p.preload = () => {
-            p.img = p.loadImage(image);
-            p.imageData = require('../json/' + p.random(p.files));
+            // p.img = p.loadImage(image);
+            p.files = p.shuffle(p.files);
+            p.imageData = require('../json/' + p.files[p.currentFileIndex]);
+            p.currentFileIndex++;
             p.song = p.loadSound(audio, p.loadMidi);
             p.song.onended(p.logCredits);
         }
@@ -119,29 +130,36 @@ const P5SketchWithAudio = () => {
             p.canvas = p.createCanvas(p.canvasWidth, p.canvasHeight);
             p.background(0);
             p.rectMode(p.CENTER);
-            p.noLoop();
             p.noFill();
+            p.noLoop();
             p.strokeWeight(0.5);
             p.loadShapeData();
         }
 
         p.draw = () => {
             if(p.audioLoaded && p.song.isPlaying()){
-
+                p.background(0);
+                for (let i = 0; i < p.shapesToDraw.length; i++) {
+                    const shape = p.shapesToDraw[i];
+                    shape.draw();
+                    shape.update();
+                }
             }
         }
 
         p.currentNoteIndex = 1;
 
+        p.shapesToDraw = [];
+
         p.executeCueSet1 = (note) => {
             const { currentCue } = note;
-            console.log('currentCue', currentCue);
-            console.log(p.currentNoteIndex);
             if(p.currentNoteIndex === 12) {
                 p.clear();
                 p.background(0);
-                p.imageData = require('../json/' + p.random(p.files));
+                p.imageData = require('../json/' + p.files[p.currentFileIndex]);
+                p.currentFileIndex++;
                 p.loadShapeData();
+                p.shapesToDraw = [];
                 p.currentNoteIndex = 1;
             }
             const numItemsToDraw = Math.ceil(p.shapeData.length / 11),
@@ -149,10 +167,16 @@ const P5SketchWithAudio = () => {
                 endIndex = p.shapeData.length < numItemsToDraw * p.currentNoteIndex ? p.shapeData.length : numItemsToDraw * p.currentNoteIndex;
             for (let i = startIndex; i < endIndex; i++) {
                 const shape = p.shapeData[i],
-                            {x, y, size, shapeType, colour } = shape;
-
-                        p.stroke(colour[0], colour[1], colour[2]);
-                        p[shapeType](x, y, size, size);
+                    {x, y, size, shapeType, colour } = shape;
+                
+                    new AnimatedShape(
+                        p,
+                        x,
+                        y,
+                        size,
+                        shapeType,
+                        colour
+                    ).draw();
             }
 
             // hack - not sure why the 6th cue is triggered twice
